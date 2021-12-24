@@ -16,7 +16,10 @@ public class UserResource {
 
     @GetMapping("/users")
     public List<User> retrieveAllUsers() {
-        return service.findAll();
+        List<User> allUsers = service.findAll();
+        if(allUsers == null)
+            throw new UserNotFoundException("No user exists");
+        return allUsers;
     }
 
     @GetMapping("/users/{id}")
@@ -29,6 +32,9 @@ public class UserResource {
 
     @PostMapping("/users")
     public ResponseEntity<Object> createUser(@RequestBody User user) {
+        if(user.getId() != null && service.findOne(user.getId()) != null) {
+            throw new UserAlreadyExistsException();
+        }
         User savedUser = service.save(user);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(savedUser.getId()).toUri();
