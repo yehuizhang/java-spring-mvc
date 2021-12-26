@@ -22,6 +22,9 @@ public class UserResource {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PostRepository postRepository;
+
     @GetMapping("/users")
     public List<User> retrieveAllUsers() {
         return userRepository.findAll();
@@ -49,6 +52,30 @@ public class UserResource {
         WebMvcLinkBuilder linkToUsers = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).retrieveAllUsers());
         model.add(linkToUsers.withRel("all-users"));
         return model;
+    }
+
+    @GetMapping("/users/{id}/posts")
+    public List<Post> retrieveUserPosts(@PathVariable int id) {
+        Optional<User> userOptional = userRepository.findById(id);
+        if(userOptional.isEmpty())
+            throw new UserNotFoundException("id: " + id);
+
+        return userOptional.get().getPosts();
+    }
+
+    @PostMapping("/users/{id}/posts")
+    public ResponseEntity<Object> createPost(@PathVariable int id, @RequestBody Post post) {
+        Optional<User> userOptional = userRepository.findById(id);
+        if(userOptional.isEmpty())
+            throw new UserNotFoundException("id: " + id);
+
+        User user = userOptional.get();
+        post.setUser(user);
+        postRepository.save(post);
+
+        URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(post.getId()).toUri();
+
+        return ResponseEntity.created(uri).build();
     }
 
     @PostMapping("/users")
