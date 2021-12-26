@@ -14,24 +14,22 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import javax.validation.Valid;
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 @RestController
 public class UserResource {
 
     @Autowired
-    private UserDaoService service;
+    private UserRepository userRepository;
 
     @GetMapping("/users")
     public List<User> retrieveAllUsers() {
-        List<User> allUsers = service.findAll();
-        if(allUsers == null)
-            throw new UserNotFoundException("No user exists");
-        return allUsers;
+        return userRepository.findAll();
     }
 
     @GetMapping("/users-name-only")
     public MappingJacksonValue retrieveAllUserNamesOnly() {
-        List<User> allUsers = service.findAll();
+        List<User> allUsers = userRepository.findAll();
 
         FilterProvider filterProvider = new SimpleFilterProvider().addFilter("UserNameFilter", SimpleBeanPropertyFilter.filterOutAllExcept("name"));
 
@@ -43,11 +41,11 @@ public class UserResource {
 
     @GetMapping("/users/{id}")
     public EntityModel<User> retrieveUsers(@PathVariable int id) {
-        User user = service.findOne(id);
-        if(user == null)
+        Optional<User> user = userRepository.findById(id);
+        if(user.isEmpty())
             throw new UserNotFoundException("id: " + id);
 
-        EntityModel<User> model = EntityModel.of(user);
+        EntityModel<User> model = EntityModel.of(user.get());
         WebMvcLinkBuilder linkToUsers = WebMvcLinkBuilder.linkTo(WebMvcLinkBuilder.methodOn(this.getClass()).retrieveAllUsers());
         model.add(linkToUsers.withRel("all-users"));
         return model;
@@ -55,10 +53,7 @@ public class UserResource {
 
     @PostMapping("/users")
     public ResponseEntity<Object> createUser(@Valid @RequestBody User user) {
-        if(user.getId() != null && service.findOne(user.getId()) != null) {
-            throw new UserAlreadyExistsException();
-        }
-        User savedUser = service.save(user);
+        User savedUser = userRepository.save(user);
 
         URI uri = ServletUriComponentsBuilder.fromCurrentRequest().path("/{id}").buildAndExpand(savedUser.getId()).toUri();
         return ResponseEntity.created(uri).build();
@@ -66,8 +61,6 @@ public class UserResource {
 
     @DeleteMapping("/users/{id}")
     public void deleteUser(@PathVariable int id) {
-        User user = service.deleteById(id);
-        if(user == null)
-            throw new UserNotFoundException("id: " + id);
+        userRepository.deleteById(id);
     }
 }
