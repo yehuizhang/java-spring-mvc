@@ -1,9 +1,13 @@
 package com.yehuizhang.rest.restfulwebservices.user;
 
+import com.fasterxml.jackson.databind.ser.FilterProvider;
+import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
+import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.hateoas.server.mvc.WebMvcLinkBuilder;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJacksonValue;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -23,6 +27,18 @@ public class UserResource {
         if(allUsers == null)
             throw new UserNotFoundException("No user exists");
         return allUsers;
+    }
+
+    @GetMapping("/users-name-only")
+    public MappingJacksonValue retrieveAllUserNamesOnly() {
+        List<User> allUsers = service.findAll();
+
+        FilterProvider filterProvider = new SimpleFilterProvider().addFilter("UserNameFilter", SimpleBeanPropertyFilter.filterOutAllExcept("name"));
+
+        MappingJacksonValue mappingJacksonValue = new MappingJacksonValue(allUsers);
+        mappingJacksonValue.setFilters(filterProvider);
+
+        return mappingJacksonValue;
     }
 
     @GetMapping("/users/{id}")
